@@ -35,9 +35,11 @@
         .input-label { font-size: 14px; font-weight: 600; color: #64748b; width: 35%; }
         .input-field { width: 65%; text-align: right; font-size: 16px; font-weight: 600; color: #0f172a; outline: none; background: transparent; padding: 0; height: 32px; border: none; }
         .input-field::placeholder { color: #cbd5e1; font-weight: 400; }
+        
         .app-card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; }
         .chart-wrapper { position: relative; height: 240px; width: 100%; }
         input[type="date"] { display: block; -webkit-appearance: none; }
+        
         .toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
         .toast-enter-from, .toast-leave-to { opacity: 0; transform: translate(-50%, -20px); }
     </style>
@@ -64,8 +66,12 @@
             </div>
         </div>
         <div class="flex gap-3 mb-0.5">
-            <button v-if="currentTab === 'maint'" @click="showSettingsModal = true" class="w-9 h-9 rounded-full bg-slate-50 text-slate-600 border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition"><i class="fa-solid fa-gear"></i></button>
-            <button v-if="currentTab !== 'chart'" @click="openVehicleModal('edit')" class="w-9 h-9 rounded-full bg-slate-50 text-slate-600 border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition"><i class="fa-solid fa-pen"></i></button>
+            <button v-if="currentTab === 'maint'" @click="showSettingsModal = true" class="w-9 h-9 rounded-full bg-slate-50 text-slate-600 border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+            <button v-if="currentTab !== 'chart'" @click="openVehicleModal('edit')" class="w-9 h-9 rounded-full bg-slate-50 text-slate-600 border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition">
+                <i class="fa-solid fa-pen"></i>
+            </button>
         </div>
     </header>
 
@@ -76,8 +82,8 @@
         <div v-if="currentTab === 'fuel'" class="space-y-6">
             <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/30 relative overflow-hidden">
                 <div class="relative z-10 flex justify-between items-start">
-                    <div><div class="text-blue-100 text-xs font-medium mb-1">平均油耗</div><div class="text-3xl font-bold">{{ calculateAverageConsumption() }} <span class="text-sm font-normal text-blue-200">km/L</span></div></div>
-                    <div class="text-right"><div class="text-blue-100 text-xs font-medium mb-1">加油花費</div><div class="text-xl font-bold">${{ calculateTotalFuelCost() }}</div></div>
+                    <div><div class="text-blue-100 text-xs font-medium mb-1">平均油耗 (區間)</div><div class="text-3xl font-bold">{{ calculateAverageConsumption() }} <span class="text-sm font-normal text-blue-200">km/L</span></div></div>
+                    <div class="text-right"><div class="text-blue-100 text-xs font-medium mb-1">總油資</div><div class="text-xl font-bold">${{ calculateTotalFuelCost() }}</div></div>
                 </div>
             </div>
 
@@ -97,7 +103,8 @@
                     <div class="flex justify-between items-center pt-2 border-t border-slate-50 mt-1">
                          <div class="flex gap-2">
                             <span v-if="log.trip > 0 && !log.isSkipped" class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100"><i class="fa-solid fa-gauge-high"></i> {{ (log.trip / log.volume).toFixed(1) }} km/L</span>
-                            <span v-if="log.isSkipped" class="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">上次忘記紀錄</span>
+                            <span v-if="log.trip === 0" class="text-[10px] font-medium text-blue-400 bg-blue-50 px-2 py-0.5 rounded-md">初始基準 (不計入油耗)</span>
+                            <span v-else-if="log.isSkipped" class="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">上次忘記紀錄</span>
                         </div>
                         <span class="text-xs font-bold text-slate-400">{{ log.volume }} L</span>
                     </div>
@@ -110,7 +117,7 @@
             <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg shadow-emerald-500/30 relative overflow-hidden">
                 <div class="relative z-10 flex justify-between items-start">
                     <div><div class="text-emerald-100 text-xs font-medium mb-1">目前總里程</div><div class="text-3xl font-bold">{{ maxOdometer.toLocaleString() }} <span class="text-sm font-normal text-emerald-200">km</span></div></div>
-                    <div class="text-right"><div class="text-emerald-100 text-xs font-medium mb-1">保養花費</div><div class="text-xl font-bold">${{ calculateTotalMaintCost() }}</div></div>
+                    <div class="text-right"><div class="text-emerald-100 text-xs font-medium mb-1">保養總花費</div><div class="text-xl font-bold">${{ calculateTotalMaintCost() }}</div></div>
                 </div>
             </div>
 
@@ -143,9 +150,9 @@
         <div v-if="currentTab === 'chart'" class="space-y-6">
             <div class="app-card p-6 bg-white border-l-4 border-l-purple-500">
                 <div class="text-center">
-                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">每公里成本</div>
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">每公里持有成本 (不含初始車價)</div>
                     <div class="text-4xl font-bold text-slate-800">{{ calculateCostPerKm() }}</div>
-                    <div class="text-[10px] text-slate-400 mt-1">NTD / km</div>
+                    <div class="text-[10px] text-slate-400 mt-1">NTD / km (扣除首筆紀錄計算)</div>
                 </div>
             </div>
 
@@ -153,7 +160,7 @@
                 <div class="app-card p-4"><h3 class="text-sm font-bold text-slate-700 mb-2 pl-2 border-l-4 border-blue-500">油耗趨勢</h3><div class="relative h-[200px] w-full"><canvas id="efficiencyChart"></canvas></div></div>
                 <div class="app-card p-4"><h3 class="text-sm font-bold text-slate-700 mb-2 pl-2 border-l-4 border-orange-500">油價波動</h3><div class="relative h-[200px] w-full"><canvas id="priceChart"></canvas></div></div>
             </div>
-            <div v-else class="py-10 text-center text-slate-400"><i class="fa-solid fa-chart-simple text-4xl mb-3 opacity-20"></i><p class="text-sm">累積足夠資料後顯示圖表</p></div>
+            <div v-else class="py-10 text-center text-slate-400"><i class="fa-solid fa-chart-simple text-4xl mb-3 opacity-20"></i><p class="text-sm">請至少輸入兩筆有效加油紀錄</p></div>
 
             <div class="pt-6 border-t border-slate-200">
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 px-1">資料管理</h3>
@@ -166,8 +173,8 @@
         </div>
     </main>
 
-    <!-- FAB (Fixed Position) -->
-    <button v-if="currentTab !== 'chart'" @click="openAddModal" class="fixed bottom-32 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center text-2xl z-[999] active:scale-90 transition duration-200">
+    <!-- FAB (Fixed Z-Index 999) -->
+    <button v-if="currentTab !== 'chart'" @click="openAddModal" class="absolute bottom-32 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center text-2xl z-[999] active:scale-90 transition duration-200">
         <i class="fa-solid fa-plus"></i>
     </button>
 
@@ -216,7 +223,7 @@
                     </div>
                      <label class="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer">
                         <input type="checkbox" v-model="form.isSkipped" class="w-5 h-5 text-blue-600 rounded">
-                        <span class="text-sm font-bold text-slate-600">上次忘記紀錄 (跳過油耗計算)</span>
+                        <span class="text-sm font-bold text-slate-600">上次忘記紀錄 (本次不計算)</span>
                     </label>
                 </div>
 
@@ -418,8 +425,9 @@
                 const s = [...currentVehicleLogs.value].sort((a, b) => new Date(b.date) - new Date(a.date) || b.odometer - a.odometer);
                 return s.map((log, i) => {
                     const prev = s[i+1];
-                    const trip = prev ? log.odometer - prev.odometer : 0;
-                    return { ...log, trip: trip > 0 ? trip : 0 };
+                    // Trip is 0 if no previous log (base log)
+                    let calcTrip = prev ? log.odometer - prev.odometer : 0;
+                    return { ...log, trip: calcTrip > 0 ? calcTrip : 0 };
                 });
             });
 
@@ -575,19 +583,45 @@
             const restoreDefaults = () => { if(confirm('恢復預設？')) mSettings.value = [ { name: '機油', interval: 10000 }, { name: '變速箱油', interval: 60000 }, { name: '前輪', interval: 40000 }, { name: '後輪', interval: 40000 }, { name: '濾網', interval: 20000 }, { name: '皮帶', interval: 80000 }, { name: '電瓶', interval: 40000 } ]; };
 
             const calculateAverageConsumption = () => {
-                const v = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
-                if(!v.length) return "--";
-                const d = v.reduce((s,l)=>s+l.trip,0), vol = v.reduce((s,l)=>s+parseFloat(l.volume),0);
+                const valid = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
+                if(!valid.length) return "--";
+                const d = valid.reduce((s,l)=>s+l.trip,0);
+                const vol = valid.reduce((s,l)=>s+parseFloat(l.volume),0);
                 return vol ? (d/vol).toFixed(2) : "--";
             };
+
             const calculateTotalFuelCost = () => currentVehicleLogs.value.reduce((s,l)=>s+parseFloat(l.totalCost||0),0).toLocaleString();
             const calculateTotalMaintCost = () => currentVehicleMLogs.value.reduce((s,l)=>s+parseFloat(l.cost||0),0).toLocaleString();
+            
             const calculateCostPerKm = () => {
                 if(!maxOdometer.value) return "--";
-                const dist = maxOdometer.value - (sortedLogs.value[sortedLogs.value.length-1]?.odometer || 0); 
-                if(dist <= 0) return "--"; 
-                const cost = parseInt(calculateTotalFuelCost().replace(/,/g,'')) + parseInt(calculateTotalMaintCost().replace(/,/g,''));
-                return (cost/dist).toFixed(2);
+                
+                // Get logs that contribute to valid trips
+                const validLogs = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
+                
+                if (validLogs.length === 0) return "--";
+
+                // Sum distance from valid trips ONLY
+                const totalValidDist = validLogs.reduce((acc, log) => acc + log.trip, 0);
+
+                // Sum cost from valid trips ONLY (Exclude base log cost)
+                const totalValidFuelCost = validLogs.reduce((acc, log) => acc + parseFloat(log.totalCost || 0), 0);
+                
+                // Maint cost is harder to attribute to intervals, so we sum all (or simplistic approach: all)
+                // For simplicity in a "Cost per Km" metric, we usually want (Total Spent / Total Dist).
+                // But the Base Log has Cost but NO Distance. This skews it.
+                // BEST FIX: Exclude Base Log Cost from this metric entirely.
+                // Assuming Base log is the oldest one.
+                // But simplified: sum cost of validLogs only.
+                
+                // Maint cost: we divide total maint cost by total valid distance (approx)
+                const totalMaint = parseInt(calculateTotalMaintCost().replace(/,/g,''));
+                
+                if (totalValidDist <= 0) return "--";
+                
+                // Note: This metric now represents "Cost per km during recorded valid trips"
+                const costPerKm = (totalValidFuelCost + totalMaint) / totalValidDist;
+                return costPerKm.toFixed(2);
             };
 
             const saveData = () => {
