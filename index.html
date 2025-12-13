@@ -16,9 +16,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- QR Code Scanner Library -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -43,15 +40,11 @@
         input[type="date"] { display: block; -webkit-appearance: none; }
         .toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
         .toast-enter-from, .toast-leave-to { opacity: 0; transform: translate(-50%, -20px); }
-
-        /* Scanner Styles */
-        #reader { width: 100%; border-radius: 16px; overflow: hidden; }
-        #reader video { object-fit: cover; border-radius: 16px; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 select-none overflow-hidden fixed inset-0">
+<body class="bg-slate-50 text-slate-800 select-none h-screen overflow-hidden flex flex-col">
 
-<div id="app" class="flex flex-col w-full max-w-xl mx-auto relative bg-slate-100 h-full">
+<div id="app" class="h-full flex flex-col w-full max-w-xl mx-auto relative bg-slate-100">
     
     <!-- TOAST -->
     <transition name="toast">
@@ -97,7 +90,7 @@
                 <div v-if="currentVehicleLogs.length === 0" class="flex flex-col items-center justify-center py-12 text-slate-300">
                     <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3"><i class="fa-solid fa-gas-pump text-2xl text-slate-300"></i></div><p class="text-sm font-medium">還沒有加油紀錄</p>
                 </div>
-                <div v-for="(log, index) in sortedLogs" :key="log.id" @click="openEditModal(log, 'fuel')" class="app-card p-4 active:scale-[0.98] transition cursor-pointer border border-transparent hover:border-blue-200">
+                <div v-for="log in sortedLogs" :key="log.id" @click="openEditModal(log, 'fuel')" class="app-card p-4 active:scale-[0.98] transition cursor-pointer border border-transparent hover:border-blue-200">
                     <div class="flex justify-between items-start mb-2">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">{{ log.fuelType || '95' }}</div>
@@ -178,7 +171,7 @@
         </div>
     </main>
 
-    <!-- FAB (Fixed Z-Index 999) -->
+    <!-- FAB (Fixed Z-Index 999) - MOVED UP TO BOTTOM-48 -->
     <button v-if="currentTab !== 'chart' && !isModalOpen" @click="openAddModal" class="absolute bottom-48 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center text-2xl z-[999] active:scale-90 transition duration-200">
         <i class="fa-solid fa-plus"></i>
     </button>
@@ -204,13 +197,7 @@
                 <!-- FUEL FORM -->
                 <div v-if="modalType === 'fuel'" class="space-y-6">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="input-row">
-                             <label class="input-label">日期</label>
-                             <div class="flex items-center gap-2">
-                                <button v-if="!isEditing" @click="startScanner" class="text-xs bg-slate-800 text-white px-2 py-1 rounded flex items-center gap-1 active:scale-95 transition"><i class="fa-solid fa-qrcode"></i> 掃描發票</button>
-                                <input type="date" v-model="form.date" class="input-field w-32">
-                             </div>
-                        </div>
+                        <div class="input-row"><label class="input-label">日期</label><input type="date" v-model="form.date" class="input-field"></div>
                         <div class="input-row"><label class="input-label">里程 (km)</label><input type="number" v-model.number="form.odometer" class="input-field" placeholder="0"></div>
                     </div>
                     
@@ -235,7 +222,7 @@
                     </div>
                      <label class="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer">
                         <input type="checkbox" v-model="form.isSkipped" class="w-5 h-5 text-blue-600 rounded">
-                        <span class="text-sm font-bold text-slate-600">上次忘記紀錄 (跳過油耗計算)</span>
+                        <span class="text-sm font-bold text-slate-600">上次忘記紀錄 (本次不計算)</span>
                     </label>
                 </div>
 
@@ -280,21 +267,6 @@
                      <span v-else>儲存紀錄</span>
                 </button>
             </div>
-        </div>
-    </transition>
-
-    <!-- Scanner Modal (Overlay) -->
-    <transition name="fade">
-        <div v-if="showScanner" class="fixed inset-0 z-[200] bg-black flex flex-col justify-center items-center">
-            <div class="absolute top-10 left-5 text-white z-50">
-                <button @click="stopScanner" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="text-white mb-4 text-center px-4">
-                <h3 class="text-lg font-bold">掃描發票 QR Code</h3>
-                <p class="text-sm text-gray-300">請對準發票左側的 QR Code</p>
-                <p class="text-xs text-yellow-400 mt-2"><i class="fa-solid fa-triangle-exclamation"></i> 需使用 GitHub Pages (HTTPS) 開啟才能使用相機</p>
-            </div>
-            <div id="reader" class="w-[300px] h-[300px] bg-black"></div>
         </div>
     </transition>
 
@@ -391,10 +363,6 @@
             const modalMode = ref('switch'); 
             const tempVehicleName = ref('');
             const confirmConfig = ref({ title: '', message: '', action: null });
-            
-            // Scanner
-            const showScanner = ref(false);
-            let html5QrcodeScanner = null;
             
             // Toast
             const showToast = ref(false);
@@ -519,7 +487,7 @@
                 isModalOpen.value = true;
             };
 
-            const closeModal = () => { isModalOpen.value = false; stopScanner(); };
+            const closeModal = () => { isModalOpen.value = false; };
 
             const saveDataAndClose = () => {
                 saving.value = true;
@@ -588,45 +556,6 @@
                 else if(type === 'volume' && p && v) t.totalCost = Math.round(v*p);
             };
 
-            // SCANNER LOGIC
-            const startScanner = () => {
-                showScanner.value = true;
-                nextTick(() => {
-                    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
-                    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-                });
-            };
-            const stopScanner = () => {
-                if (html5QrcodeScanner) {
-                    html5QrcodeScanner.clear().then(() => { showScanner.value = false; }).catch(err => { showScanner.value = false; });
-                } else { showScanner.value = false; }
-            };
-            const onScanFailure = (err) => { /* ignore */ };
-            const onScanSuccess = (decodedText) => {
-                const res = parseInvoice(decodedText);
-                if(res) {
-                    form.value.date = res.date;
-                    form.value.totalCost = res.cost;
-                    recalc(form.value, 'cost');
-                    stopScanner();
-                    triggerToast(`掃描成功！金額 $${res.cost}`);
-                } else {
-                    alert('無法辨識此發票 QR Code');
-                }
-            };
-            const parseInvoice = (text) => {
-                if (text.length < 45) return null;
-                const rocDate = text.substring(10, 17); // 1120101
-                if(isNaN(parseInt(rocDate))) return null;
-                const year = parseInt(rocDate.substring(0,3)) + 1911;
-                const month = rocDate.substring(3,5);
-                const day = rocDate.substring(5,7);
-                const hexAmount = text.substring(29, 37); // Total Amount
-                const amount = parseInt(hexAmount, 16);
-                if (isNaN(amount)) return null;
-                return { date: `${year}-${month}-${day}`, cost: amount };
-            };
-
             const openVehicleModal = (mode) => { 
                 modalMode.value = mode; 
                 tempVehicleName.value = mode==='edit' ? currentVehicle.value.name : ''; 
@@ -655,15 +584,21 @@
             const calculateAverageConsumption = () => {
                 const valid = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
                 if(!valid.length) return "--";
-                const d = valid.reduce((s,l)=>s+l.trip,0), vol = valid.reduce((s,l)=>s+parseFloat(l.volume),0);
+                const d = valid.reduce((s,l)=>s+l.trip,0);
+                const vol = valid.reduce((s,l)=>s+parseFloat(l.volume),0);
                 return vol ? (d/vol).toFixed(2) : "--";
             };
 
+            // NEW: Interval Fuel Cost Calculation (excludes base log and skipped logs if preferred, but user wants Total Cost of "Valid Interval"?)
+            // Actually, "Fuel Cost" usually means "Total money spent on gas". 
+            // BUT if we want "Interval Cost", we should sum cost of logs that have trip > 0.
+            // Let's create a specific function for the display to avoid confusion.
             const calculateIntervalFuelCost = () => {
                  const valid = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
                  return valid.reduce((s,l)=>s+parseFloat(l.totalCost||0),0).toLocaleString();
             };
 
+            // Keep Total for internal logic if needed, but display Interval Cost
             const calculateTotalFuelCost = () => currentVehicleLogs.value.reduce((s,l)=>s+parseFloat(l.totalCost||0),0).toLocaleString();
             
             const calculateTotalMaintCost = () => currentVehicleMLogs.value.reduce((s,l)=>s+parseFloat(l.cost||0),0).toLocaleString();
@@ -671,12 +606,20 @@
             const calculateCostPerKm = () => {
                 if(!maxOdometer.value) return "--";
                 
+                // Get logs that contribute to valid trips
                 const validLogs = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
+                
                 if (validLogs.length === 0) return "--";
 
+                // Sum distance from valid trips ONLY
                 const totalValidDist = validLogs.reduce((acc, log) => acc + log.trip, 0);
+
+                // Sum cost from valid trips ONLY (Exclude base log cost)
+                // This is CRITICAL: We only count the cost of fuel that moved the car for `totalValidDist`
                 const totalValidFuelCost = validLogs.reduce((acc, log) => acc + parseFloat(log.totalCost || 0), 0);
-                const totalMaint = parseInt(calculateTotalMaintCost().replace(/,/g,''));
+                
+                // Maint cost: simplistic approach, sum all maint cost
+                const totalMaint = currentVehicleMLogs.value.reduce((acc, log) => acc + parseFloat(log.cost || 0), 0);
                 
                 if (totalValidDist <= 0) return "--";
                 
@@ -728,12 +671,12 @@
             return {
                 vehicles, currentVehicleId, currentVehicle, logs, mLogs, currentTab, maxOdometer, sortedLogs, sortedMLogs, currentVehicleLogs, currentVehicleMLogs,
                 form, mForm, mSettings, activeReminders, isModalOpen, modalType, isEditing, showVehicleModal, showSettingsModal, showConfirmModal, modalMode, tempVehicleName,
-                chartDataAvailable, showToast, toastMessage, saving, showScanner,
+                chartDataAvailable, showToast, toastMessage, saving,
                 openAddModal, openEditModal, closeModal, saveDataAndClose, askConfirm, executeConfirm,
                 fetchOilPrice, setFuelType, recalc, appendMaintTitle, openVehicleModal, switchVehicle, saveVehicle,
                 addSetting, removeSetting, saveSettings, restoreDefaults,
                 calculateAverageConsumption, calculateTotalFuelCost, calculateIntervalFuelCost, calculateTotalMaintCost, calculateCostPerKm,
-                exportData, importData, confirmConfig, getCategoryBg, getCategoryIcon, startScanner, stopScanner
+                exportData, importData, confirmConfig, getCategoryBg, getCategoryIcon
             };
         }
     }).mount('#app');
