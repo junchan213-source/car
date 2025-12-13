@@ -7,7 +7,7 @@
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#f8fafc">
 
     <!-- Icon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232563eb%22/><path d=%22M75 35h-5v-5c0-2.8-2.2-5-5-5h-5c-2.8 0-5 2.2-5 5v5h-5c-2.8 0-5 2.2-5 5v35c0 2.8 2.2 5 5 5h20c2.8 0 5-2.2 5-5V40c0-1.5-.7-2.9-1.9-3.8.4-.3.9-.7 1.3-1.2H75c2.8 0 5-2.2 5-5s-2.2-5-5-5zm-15 0h-5v-5h5v5z%22 fill=%22white%22/><path d=%22M35 30H20c-2.8 0-5 2.2-5 5v30c0 2.8 2.2 5 5 5h15c2.8 0 5-2.2 5-5V35c0-2.8-2.2-5-5-5zm0 30H20V40h15v20z%22 fill=%22white%22/></svg>">
@@ -16,6 +16,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -26,15 +29,7 @@
         .fade-enter-from, .fade-leave-to { opacity: 0; }
         .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
-        
-        /* FIX: Dynamic Viewport Height & Safe Area */
-        #app { height: 100vh; height: 100dvh; }
-        header { 
-            padding-top: max(44px, env(safe-area-inset-top)); 
-            padding-bottom: 12px;
-            /* Ensure header background covers the top notch area */
-            background-color: white;
-        }
+        header { padding-top: max(44px, env(safe-area-inset-top)); padding-bottom: 12px; background-color: white; }
         nav { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
         
         .input-row { background: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
@@ -48,6 +43,10 @@
         input[type="date"] { display: block; -webkit-appearance: none; }
         .toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
         .toast-enter-from, .toast-leave-to { opacity: 0; transform: translate(-50%, -20px); }
+
+        /* Scanner Styles */
+        #reader { width: 100%; border-radius: 16px; overflow: hidden; }
+        #reader video { object-fit: cover; border-radius: 16px; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 select-none overflow-hidden fixed inset-0">
@@ -64,14 +63,14 @@
 
     <!-- Top Nav -->
     <header class="px-5 border-b border-slate-100 flex justify-between items-end z-30 shrink-0">
-        <div class="flex flex-col">
+        <div class="flex flex-col pb-1">
             <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1">CURRENT VEHICLE</span>
             <div class="flex items-center gap-2 cursor-pointer active:opacity-60" @click="openVehicleModal('switch')">
                 <h1 class="text-xl font-bold text-slate-900 truncate max-w-[200px]">{{ currentVehicle?.name || '我的愛車' }}</h1>
                 <i class="fa-solid fa-caret-down text-slate-400"></i>
             </div>
         </div>
-        <div class="flex gap-3 mb-0.5">
+        <div class="flex gap-3 mb-1">
             <button v-if="currentTab === 'maint'" @click="showSettingsModal = true" class="w-9 h-9 rounded-full bg-slate-50 text-slate-600 border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition">
                 <i class="fa-solid fa-gear"></i>
             </button>
@@ -180,7 +179,7 @@
     </main>
 
     <!-- FAB (Fixed Z-Index 999) -->
-    <button v-if="currentTab !== 'chart' && !isModalOpen" @click="openAddModal" class="absolute bottom-40 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center text-2xl z-[999] active:scale-90 transition duration-200">
+    <button v-if="currentTab !== 'chart' && !isModalOpen" @click="openAddModal" class="absolute bottom-48 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center text-2xl z-[999] active:scale-90 transition duration-200">
         <i class="fa-solid fa-plus"></i>
     </button>
 
@@ -205,7 +204,13 @@
                 <!-- FUEL FORM -->
                 <div v-if="modalType === 'fuel'" class="space-y-6">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="input-row"><label class="input-label">日期</label><input type="date" v-model="form.date" class="input-field"></div>
+                        <div class="input-row">
+                             <label class="input-label">日期</label>
+                             <div class="flex items-center gap-2">
+                                <button v-if="!isEditing" @click="startScanner" class="text-xs bg-slate-800 text-white px-2 py-1 rounded flex items-center gap-1 active:scale-95 transition"><i class="fa-solid fa-qrcode"></i> 掃描發票</button>
+                                <input type="date" v-model="form.date" class="input-field w-32">
+                             </div>
+                        </div>
                         <div class="input-row"><label class="input-label">里程 (km)</label><input type="number" v-model.number="form.odometer" class="input-field" placeholder="0"></div>
                     </div>
                     
@@ -230,7 +235,7 @@
                     </div>
                      <label class="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer">
                         <input type="checkbox" v-model="form.isSkipped" class="w-5 h-5 text-blue-600 rounded">
-                        <span class="text-sm font-bold text-slate-600">上次忘記紀錄 (本次不計算)</span>
+                        <span class="text-sm font-bold text-slate-600">上次忘記紀錄 (跳過油耗計算)</span>
                     </label>
                 </div>
 
@@ -275,6 +280,21 @@
                      <span v-else>儲存紀錄</span>
                 </button>
             </div>
+        </div>
+    </transition>
+
+    <!-- Scanner Modal (Overlay) -->
+    <transition name="fade">
+        <div v-if="showScanner" class="fixed inset-0 z-[200] bg-black flex flex-col justify-center items-center">
+            <div class="absolute top-10 left-5 text-white z-50">
+                <button @click="stopScanner" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="text-white mb-4 text-center px-4">
+                <h3 class="text-lg font-bold">掃描發票 QR Code</h3>
+                <p class="text-sm text-gray-300">請對準發票左側的 QR Code</p>
+                <p class="text-xs text-yellow-400 mt-2"><i class="fa-solid fa-triangle-exclamation"></i> 需使用 GitHub Pages (HTTPS) 開啟才能使用相機</p>
+            </div>
+            <div id="reader" class="w-[300px] h-[300px] bg-black"></div>
         </div>
     </transition>
 
@@ -371,6 +391,10 @@
             const modalMode = ref('switch'); 
             const tempVehicleName = ref('');
             const confirmConfig = ref({ title: '', message: '', action: null });
+            
+            // Scanner
+            const showScanner = ref(false);
+            let html5QrcodeScanner = null;
             
             // Toast
             const showToast = ref(false);
@@ -495,7 +519,7 @@
                 isModalOpen.value = true;
             };
 
-            const closeModal = () => { isModalOpen.value = false; };
+            const closeModal = () => { isModalOpen.value = false; stopScanner(); };
 
             const saveDataAndClose = () => {
                 saving.value = true;
@@ -564,6 +588,45 @@
                 else if(type === 'volume' && p && v) t.totalCost = Math.round(v*p);
             };
 
+            // SCANNER LOGIC
+            const startScanner = () => {
+                showScanner.value = true;
+                nextTick(() => {
+                    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
+                    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+                });
+            };
+            const stopScanner = () => {
+                if (html5QrcodeScanner) {
+                    html5QrcodeScanner.clear().then(() => { showScanner.value = false; }).catch(err => { showScanner.value = false; });
+                } else { showScanner.value = false; }
+            };
+            const onScanFailure = (err) => { /* ignore */ };
+            const onScanSuccess = (decodedText) => {
+                const res = parseInvoice(decodedText);
+                if(res) {
+                    form.value.date = res.date;
+                    form.value.totalCost = res.cost;
+                    recalc(form.value, 'cost');
+                    stopScanner();
+                    triggerToast(`掃描成功！金額 $${res.cost}`);
+                } else {
+                    alert('無法辨識此發票 QR Code');
+                }
+            };
+            const parseInvoice = (text) => {
+                if (text.length < 45) return null;
+                const rocDate = text.substring(10, 17); // 1120101
+                if(isNaN(parseInt(rocDate))) return null;
+                const year = parseInt(rocDate.substring(0,3)) + 1911;
+                const month = rocDate.substring(3,5);
+                const day = rocDate.substring(5,7);
+                const hexAmount = text.substring(29, 37); // Total Amount
+                const amount = parseInt(hexAmount, 16);
+                if (isNaN(amount)) return null;
+                return { date: `${year}-${month}-${day}`, cost: amount };
+            };
+
             const openVehicleModal = (mode) => { 
                 modalMode.value = mode; 
                 tempVehicleName.value = mode==='edit' ? currentVehicle.value.name : ''; 
@@ -596,16 +659,11 @@
                 return vol ? (d/vol).toFixed(2) : "--";
             };
 
-            // NEW: Interval Fuel Cost Calculation (excludes base log and skipped logs if preferred, but user wants Total Cost of "Valid Interval"?)
-            // Actually, "Fuel Cost" usually means "Total money spent on gas". 
-            // BUT if we want "Interval Cost", we should sum cost of logs that have trip > 0.
-            // Let's create a specific function for the display to avoid confusion.
             const calculateIntervalFuelCost = () => {
                  const valid = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
                  return valid.reduce((s,l)=>s+parseFloat(l.totalCost||0),0).toLocaleString();
             };
 
-            // Keep Total for internal logic if needed, but display Interval Cost
             const calculateTotalFuelCost = () => currentVehicleLogs.value.reduce((s,l)=>s+parseFloat(l.totalCost||0),0).toLocaleString();
             
             const calculateTotalMaintCost = () => currentVehicleMLogs.value.reduce((s,l)=>s+parseFloat(l.cost||0),0).toLocaleString();
@@ -613,20 +671,11 @@
             const calculateCostPerKm = () => {
                 if(!maxOdometer.value) return "--";
                 
-                // Get logs that contribute to valid trips
                 const validLogs = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
-                
                 if (validLogs.length === 0) return "--";
 
-                // Sum distance from valid trips ONLY
                 const totalValidDist = validLogs.reduce((acc, log) => acc + log.trip, 0);
-
-                // Sum cost from valid trips ONLY (Exclude base log cost)
                 const totalValidFuelCost = validLogs.reduce((acc, log) => acc + parseFloat(log.totalCost || 0), 0);
-                
-                // Maint cost: we divide total maint cost by total valid distance (approx)
-                // Note: accurate maint cost per km is hard without maint mileage intervals. 
-                // Using total maint cost / total valid distance is a fair approximation for ownership cost during the tracking period.
                 const totalMaint = parseInt(calculateTotalMaintCost().replace(/,/g,''));
                 
                 if (totalValidDist <= 0) return "--";
@@ -679,12 +728,12 @@
             return {
                 vehicles, currentVehicleId, currentVehicle, logs, mLogs, currentTab, maxOdometer, sortedLogs, sortedMLogs, currentVehicleLogs, currentVehicleMLogs,
                 form, mForm, mSettings, activeReminders, isModalOpen, modalType, isEditing, showVehicleModal, showSettingsModal, showConfirmModal, modalMode, tempVehicleName,
-                chartDataAvailable, showToast, toastMessage, saving,
+                chartDataAvailable, showToast, toastMessage, saving, showScanner,
                 openAddModal, openEditModal, closeModal, saveDataAndClose, askConfirm, executeConfirm,
                 fetchOilPrice, setFuelType, recalc, appendMaintTitle, openVehicleModal, switchVehicle, saveVehicle,
                 addSetting, removeSetting, saveSettings, restoreDefaults,
                 calculateAverageConsumption, calculateTotalFuelCost, calculateIntervalFuelCost, calculateTotalMaintCost, calculateCostPerKm,
-                exportData, importData, confirmConfig, getCategoryBg, getCategoryIcon
+                exportData, importData, confirmConfig, getCategoryBg, getCategoryIcon, startScanner, stopScanner
             };
         }
     }).mount('#app');
