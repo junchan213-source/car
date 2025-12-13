@@ -26,8 +26,16 @@
         .fade-enter-from, .fade-leave-to { opacity: 0; }
         .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
-        header { padding-top: env(safe-area-inset-top); }
-        nav { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+        
+        /* FIX: Robust Header Padding */
+        header { 
+            padding-top: max(20px, env(safe-area-inset-top)); 
+            height: auto;
+            min-height: 90px;
+        }
+        
+        /* FIX: Robust Bottom Padding */
+        nav { padding-bottom: calc(2rem + env(safe-area-inset-bottom)); }
         
         .input-row { background: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
         .input-row:first-child { border-top-left-radius: 16px; border-top-right-radius: 16px; }
@@ -54,16 +62,16 @@
         </div>
     </transition>
 
-    <!-- Top Nav -->
-    <header class="bg-white px-5 pb-3 pt-safe-top border-b border-slate-100 flex justify-between items-end h-[90px] z-30 shrink-0">
-        <div class="flex flex-col">
+    <!-- Top Nav (Fixed Layout) -->
+    <header class="bg-white px-5 pb-3 border-b border-slate-100 flex justify-between items-end z-30 shrink-0">
+        <div class="flex flex-col pb-1">
             <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1">CURRENT VEHICLE</span>
             <div class="flex items-center gap-2 cursor-pointer active:opacity-60" @click="openVehicleModal('switch')">
                 <h1 class="text-xl font-bold text-slate-900 truncate max-w-[200px]">{{ currentVehicle?.name || '我的愛車' }}</h1>
                 <i class="fa-solid fa-caret-down text-slate-400"></i>
             </div>
         </div>
-        <div class="flex gap-3 mb-0.5">
+        <div class="flex gap-3 mb-1">
             <button v-if="currentTab === 'maint'" @click="showSettingsModal = true" class="w-9 h-9 rounded-full bg-slate-50 text-slate-600 border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition">
                 <i class="fa-solid fa-gear"></i>
             </button>
@@ -171,7 +179,7 @@
         </div>
     </main>
 
-    <!-- FAB (Fixed Z-Index 999) - MOVED UP -->
+    <!-- FAB (Fixed Z-Index 999) - MOVED UP TO BOTTOM-48 -->
     <button v-if="currentTab !== 'chart' && !isModalOpen" @click="openAddModal" class="absolute bottom-48 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center text-2xl z-[999] active:scale-90 transition duration-200">
         <i class="fa-solid fa-plus"></i>
     </button>
@@ -221,7 +229,7 @@
                     </div>
                      <label class="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer">
                         <input type="checkbox" v-model="form.isSkipped" class="w-5 h-5 text-blue-600 rounded">
-                        <span class="text-sm font-bold text-slate-600">上次忘記紀錄 (跳過油耗計算)</span>
+                        <span class="text-sm font-bold text-slate-600">上次忘記紀錄 (本次不計算)</span>
                     </label>
                 </div>
 
@@ -601,21 +609,14 @@
                 const totalValidDist = validLogs.reduce((acc, log) => acc + log.trip, 0);
 
                 // Sum cost from valid trips ONLY (Exclude base log cost)
+                // This is CRITICAL: We only count the cost of fuel that moved the car for `totalValidDist`
                 const totalValidFuelCost = validLogs.reduce((acc, log) => acc + parseFloat(log.totalCost || 0), 0);
                 
-                // Maint cost is harder to attribute to intervals, so we sum all (or simplistic approach: all)
-                // For simplicity in a "Cost per Km" metric, we usually want (Total Spent / Total Dist).
-                // But the Base Log has Cost but NO Distance. This skews it.
-                // BEST FIX: Exclude Base Log Cost from this metric entirely.
-                // Assuming Base log is the oldest one.
-                // But simplified: sum cost of validLogs only.
-                
-                // Maint cost: we divide total maint cost by total valid distance (approx)
-                const totalMaint = parseInt(calculateTotalMaintCost().replace(/,/g,''));
+                // Maint cost: simplistic approach, sum all maint cost
+                const totalMaint = currentVehicleMLogs.value.reduce((acc, log) => acc + parseFloat(log.cost || 0), 0);
                 
                 if (totalValidDist <= 0) return "--";
                 
-                // Note: This metric now represents "Cost per km during recorded valid trips"
                 const costPerKm = (totalValidFuelCost + totalMaint) / totalValidDist;
                 return costPerKm.toFixed(2);
             };
