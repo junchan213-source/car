@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>愛車管家 Pro</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#f8fafc">
+
+    <!-- Icon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232563eb%22/><path d=%22M75 35h-5v-5c0-2.8-2.2-5-5-5h-5c-2.8 0-5 2.2-5 5v5h-5c-2.8 0-5 2.2-5 5v35c0 2.8 2.2 5 5 5h20c2.8 0 5-2.2 5-5V40c0-1.5-.7-2.9-1.9-3.8.4-.3.9-.7 1.3-1.2H75c2.8 0 5-2.2 5-5s-2.2-5-5-5zm-15 0h-5v-5h5v5z%22 fill=%22white%22/><path d=%22M35 30H20c-2.8 0-5 2.2-5 5v30c0 2.8 2.2 5 5 5h15c2.8 0 5-2.2 5-5V35c0-2.8-2.2-5-5-5zm0 30H20V40h15v20z%22 fill=%22white%22/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232563eb%22/><path d=%22M75 35h-5v-5c0-2.8-2.2-5-5-5h-5c-2.8 0-5 2.2-5 5v5h-5c-2.8 0-5 2.2-5 5v35c0 2.8 2.2 5 5 5h20c2.8 0 5-2.2 5-5V40c0-1.5-.7-2.9-1.9-3.8.4-.3.9-.7 1.3-1.2H75c2.8 0 5-2.2 5-5s-2.2-5-5-5zm-15 0h-5v-5h5v5z%22 fill=%22white%22/><path d=%22M35 30H20c-2.8 0-5 2.2-5 5v30c0 2.8 2.2 5 5 5h15c2.8 0 5-2.2 5-5V35c0-2.8-2.2-5-5-5zm0 30H20V40h15v20z%22 fill=%22white%22/></svg>">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
+        header { padding-top: env(safe-area-inset-top); }
+        nav { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+        
+        .input-row { background: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
+        .input-row:first-child { border-top-left-radius: 16px; border-top-right-radius: 16px; }
+        .input-row:last-child { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; border-bottom: none; }
+        .input-label { font-size: 14px; font-weight: 600; color: #64748b; width: 35%; }
+        .input-field { width: 65%; text-align: right; font-size: 16px; font-weight: 600; color: #0f172a; outline: none; background: transparent; padding: 0; height: 32px; border: none; }
+        .input-field::placeholder { color: #cbd5e1; font-weight: 400; }
+        
+        .app-card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; }
+        .chart-wrapper { position: relative; height: 240px; width: 100%; }
+        input[type="date"] { display: block; -webkit-appearance: none; }
+        
+        .toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
+        .toast-enter-from, .toast-leave-to { opacity: 0; transform: translate(-50%, -20px); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 select-none h-screen overflow-hidden flex flex-col">
+
+<div id="app" class="h-full flex flex-col w-full max-w-xl mx-auto relative bg-slate-100">
+    
+    <!-- TOAST NOTIFICATION -->
+    <transition name="toast">
+        <div v-if="showToast" class="fixed top-12 left-1/2 transform -translate-x-1/2 z-[2000] bg-slate-800 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs text-white">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <span class="font-bold text-sm tracking-wide">{{ toastMessage }}</span>
+        </div>
+    </transition>
+
+    <!-- Top Nav -->
+    <header class="bg-white px-5 pb-3 pt-safe-top border-b border-slate-100 flex justify-between items-end h-[90px] z-30 shrink-0">
+        <div class="flex flex-col">
+            <span class="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-1">CURRENT VEHICLE</span>
+            <div class="flex items-center gap-2 cursor-pointer active:opacity-60" @click="openVehicleModal('switch')">
+                <h1 class="text-xl font-bold text-slate-900 truncate max-w-[200px]">{{ currentVehicle?.name || '我的愛車' }}</h1>
+                <i class="fa-solid fa-caret-down text-slate-400"></i>
+            </div>
+        </div>
+        <div class="flex gap-3 mb-0.5">
+            <button v-if="currentTab === 'maint'" @click="showSettingsModal = true" class="w-9 h-9 rounded-full bg-slate-50 text-slate-600 border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+            <button v-if="currentTab !== 'chart'" @click="openVehicleModal('edit')" class="w-9 h-9 rounded-full bg-slate-50 text-slate-600 border border-slate-200 flex items-center justify-center hover:bg-slate-100 active:scale-90 transition">
+                <i class="fa-solid fa-pen"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-5 pb-32 overscroll-contain">
+        
+        <!-- FUEL TAB -->
+        <div v-if="currentTab === 'fuel'" class="space-y-6">
+            <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/30 relative overflow-hidden">
+                <div class="relative z-10 flex justify-between items-start">
+                    <div><div class="text-blue-100 text-xs font-medium mb-1">平均油耗</div><div class="text-3xl font-bold">{{ calculateAverageConsumption() }} <span class="text-sm font-normal text-blue-200">km/L</span></div></div>
+                    <div class="text-right"><div class="text-blue-100 text-xs font-medium mb-1">加油花費</div><div class="text-xl font-bold">${{ calculateTotalFuelCost() }}</div></div>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex justify-between items-end px-1"><h3 class="font-bold text-slate-600">記錄列表</h3><span class="text-xs text-slate-400 bg-slate-200/50 px-2 py-0.5 rounded">{{ currentVehicleLogs.length }} 筆</span></div>
+                <div v-if="currentVehicleLogs.length === 0" class="flex flex-col items-center justify-center py-12 text-slate-300">
+                    <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3"><i class="fa-solid fa-gas-pump text-2xl text-slate-300"></i></div><p class="text-sm font-medium">還沒有加油紀錄</p>
+                </div>
+                <div v-for="log in sortedLogs" :key="log.id" @click="openEditModal(log, 'fuel')" class="app-card p-4 active:scale-[0.98] transition cursor-pointer border border-transparent hover:border-blue-200">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">{{ log.fuelType || '95' }}</div>
+                            <div><div class="font-bold text-slate-800 text-sm">{{ log.date }}</div><div class="text-xs text-slate-400 font-medium">里程 {{ log.odometer }} km</div></div>
+                        </div>
+                        <div class="text-right"><div class="font-bold text-slate-900">${{ log.totalCost }}</div><div class="text-xs text-slate-400">{{ log.unitPrice }}/L</div></div>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-50 mt-1">
+                         <div class="flex gap-2">
+                            <span v-if="log.trip > 0 && !log.isSkipped" class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100"><i class="fa-solid fa-gauge-high"></i> {{ (log.trip / log.volume).toFixed(1) }} km/L</span>
+                            <span v-if="log.isSkipped" class="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">上次忘記紀錄</span>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400">{{ log.volume }} L</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAINT TAB -->
+        <div v-if="currentTab === 'maint'" class="space-y-6">
+            <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg shadow-emerald-500/30 relative overflow-hidden">
+                <div class="relative z-10 flex justify-between items-start">
+                    <div><div class="text-emerald-100 text-xs font-medium mb-1">目前總里程</div><div class="text-3xl font-bold">{{ maxOdometer.toLocaleString() }} <span class="text-sm font-normal text-emerald-200">km</span></div></div>
+                    <div class="text-right"><div class="text-emerald-100 text-xs font-medium mb-1">保養花費</div><div class="text-xl font-bold">${{ calculateTotalMaintCost() }}</div></div>
+                </div>
+            </div>
+
+            <div v-if="activeReminders.length > 0">
+                <h3 class="font-bold text-slate-600 mb-3 px-1">保養建議</h3>
+                <div class="flex gap-3 overflow-x-auto pb-4 -mx-5 px-5 snap-x hide-scrollbar">
+                    <div v-for="rem in activeReminders" :key="rem.name" class="min-w-[140px] bg-white p-3 rounded-xl border border-slate-200 shadow-sm snap-start flex-shrink-0">
+                        <div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-slate-500 truncate">{{ rem.name }}</span><span class="w-2 h-2 rounded-full" :class="rem.isDue ? 'bg-red-500' : 'bg-emerald-400'"></span></div>
+                        <div class="text-lg font-bold mb-2" :class="rem.isDue ? 'text-red-500' : 'text-slate-800'">{{ rem.remaining }} <span class="text-[10px] font-normal text-slate-400">km</span></div>
+                        <div class="w-full h-1 bg-slate-100 rounded-full overflow-hidden"><div class="h-full rounded-full transition-all duration-500" :class="rem.isDue ? 'bg-red-500' : 'bg-emerald-500'" :style="{ width: Math.min(rem.percent, 100) + '%' }"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <div class="flex justify-between items-end px-1"><h3 class="font-bold text-slate-600">保養歷程</h3><span class="text-xs text-slate-400 bg-slate-200/50 px-2 py-0.5 rounded">{{ currentVehicleMLogs.length }} 筆</span></div>
+                <div v-if="currentVehicleMLogs.length === 0" class="flex flex-col items-center justify-center py-12 text-slate-300"><div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3"><i class="fa-solid fa-wrench text-2xl text-slate-300"></i></div><p class="text-sm font-medium">尚無保養紀錄</p></div>
+                <div v-for="log in sortedMLogs" :key="log.id" @click="openEditModal(log, 'maint')" class="app-card p-4 active:scale-[0.98] transition cursor-pointer flex gap-4 items-start">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0" :class="getCategoryBg(log.category)"><i :class="getCategoryIcon(log.category)"></i></div>
+                    <div class="flex-1 min-w-0">
+                         <div class="flex justify-between items-start"><h4 class="font-bold text-slate-900 text-sm truncate">{{ log.title }}</h4><span class="font-bold text-slate-800 text-sm">${{ log.cost }}</span></div>
+                        <div class="text-xs text-slate-400 mt-1">{{ log.date }} · {{ log.odometer }} km</div>
+                        <div v-if="log.shop" class="text-[10px] text-slate-500 mt-1 bg-slate-50 inline-block px-1.5 rounded border border-slate-100"><i class="fa-solid fa-store mr-1 text-slate-300"></i>{{ log.shop }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHART TAB -->
+        <div v-if="currentTab === 'chart'" class="space-y-6">
+            <div class="app-card p-6 bg-white border-l-4 border-l-purple-500">
+                <div class="text-center">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">每公里成本</div>
+                    <div class="text-4xl font-bold text-slate-800">{{ calculateCostPerKm() }}</div>
+                    <div class="text-[10px] text-slate-400 mt-1">NTD / km</div>
+                </div>
+            </div>
+
+            <div v-if="chartDataAvailable" class="space-y-4">
+                <div class="app-card p-4"><h3 class="text-sm font-bold text-slate-700 mb-2 pl-2 border-l-4 border-blue-500">油耗趨勢</h3><div class="relative h-[200px] w-full"><canvas id="efficiencyChart"></canvas></div></div>
+                <div class="app-card p-4"><h3 class="text-sm font-bold text-slate-700 mb-2 pl-2 border-l-4 border-orange-500">油價波動</h3><div class="relative h-[200px] w-full"><canvas id="priceChart"></canvas></div></div>
+            </div>
+            <div v-else class="py-10 text-center text-slate-400"><i class="fa-solid fa-chart-simple text-4xl mb-3 opacity-20"></i><p class="text-sm">累積足夠資料後顯示圖表</p></div>
+
+            <div class="pt-6 border-t border-slate-200">
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-3 px-1">資料管理</h3>
+                <div class="flex gap-3">
+                    <button @click="exportData" class="flex-1 bg-white border border-slate-300 text-slate-600 py-3 rounded-xl text-sm font-bold shadow-sm">匯出</button>
+                    <button @click="$refs.fileInput.click()" class="flex-1 bg-white border border-slate-300 text-slate-600 py-3 rounded-xl text-sm font-bold shadow-sm">匯入</button>
+                    <input type="file" ref="fileInput" @change="importData" class="hidden" accept=".json">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FAB (Fixed Z-Index 999) -->
+    <button v-if="currentTab !== 'chart'" @click="openAddModal" class="absolute bottom-24 right-5 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center text-2xl z-[999] active:scale-90 transition duration-200">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-0 w-full max-w-xl bg-white border-t border-slate-200 flex justify-around items-center z-50 h-[85px] pb-5 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+        <button @click="currentTab = 'fuel'" class="flex-1 h-full flex flex-col items-center justify-center transition" :class="currentTab === 'fuel' ? 'text-blue-600' : 'text-slate-400'"><i class="fa-solid fa-gas-pump text-xl mb-1"></i><span class="text-[10px] font-bold">加油</span></button>
+        <button @click="currentTab = 'maint'" class="flex-1 h-full flex flex-col items-center justify-center transition" :class="currentTab === 'maint' ? 'text-emerald-500' : 'text-slate-400'"><i class="fa-solid fa-screwdriver-wrench text-xl mb-1"></i><span class="text-[10px] font-bold">保養</span></button>
+        <button @click="currentTab = 'chart'" class="flex-1 h-full flex flex-col items-center justify-center transition" :class="currentTab === 'chart' ? 'text-purple-500' : 'text-slate-400'"><i class="fa-solid fa-chart-line text-xl mb-1"></i><span class="text-[10px] font-bold">分析</span></button>
+    </nav>
+
+    <!-- Modal Overlay -->
+    <transition name="slide-up">
+        <div v-if="isModalOpen" class="fixed inset-0 z-[100] bg-slate-100 flex flex-col h-full w-full">
+            <div class="px-5 pt-safe-top h-[60px] flex items-center justify-between bg-white border-b border-slate-200 shrink-0">
+                <button @click="closeModal" class="w-10 h-10 flex items-center justify-start text-slate-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <h2 class="font-bold text-lg text-slate-800">{{ isEditing ? '編輯紀錄' : '新增紀錄' }}</h2>
+                <div class="w-10"></div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-5 space-y-6">
+                <!-- FUEL FORM -->
+                <div v-if="modalType === 'fuel'" class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="input-row"><label class="input-label">日期</label><input type="date" v-model="form.date" class="input-field"></div>
+                        <div class="input-row"><label class="input-label">里程 (km)</label><input type="number" v-model.number="form.odometer" class="input-field" placeholder="0"></div>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+                        <div class="flex justify-between items-center mb-4">
+                             <div class="text-sm font-bold text-slate-500">油種</div>
+                             <div class="flex gap-2">
+                                 <button v-for="t in ['92','95','98','柴油']" :key="t" @click="setFuelType(t)" class="px-3 py-1 rounded text-xs font-bold border transition" :class="form.fuelType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'">{{ t }}</button>
+                             </div>
+                        </div>
+                        <div class="space-y-0 border border-slate-100 rounded-xl overflow-hidden">
+                            <div class="input-row border-b border-slate-100"><label class="input-label">單價</label><input type="number" step="0.1" v-model.number="form.unitPrice" @input="recalc(form, 'price')" class="input-field text-orange-500"></div>
+                            <div class="input-row border-b border-slate-100"><label class="input-label">總金額</label><input type="number" v-model.number="form.totalCost" @input="recalc(form, 'cost')" class="input-field text-blue-600 text-lg"></div>
+                            <div class="input-row"><label class="input-label">公升數</label><input type="number" step="0.01" v-model.number="form.volume" @input="recalc(form, 'volume')" class="input-field text-slate-600"></div>
+                        </div>
+                         <div class="mt-3 flex justify-end">
+                            <button @click="fetchOilPrice(form)" class="text-xs text-orange-500 font-bold bg-orange-50 px-3 py-1.5 rounded-lg active:bg-orange-100 transition"><i class="fa-solid fa-rotate-right mr-1"></i>重抓油價</button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="input-row"><label class="input-label">地點</label><input type="text" v-model="form.locationName" class="input-field" placeholder="選填"></div>
+                    </div>
+                     <label class="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl cursor-pointer">
+                        <input type="checkbox" v-model="form.isSkipped" class="w-5 h-5 text-blue-600 rounded">
+                        <span class="text-sm font-bold text-slate-600">上次忘記紀錄 (跳過油耗計算)</span>
+                    </label>
+                </div>
+
+                <!-- MAINT FORM -->
+                <div v-if="modalType === 'maint'" class="space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="input-row"><label class="input-label">日期</label><input type="date" v-model="mForm.date" class="input-field"></div>
+                        <div class="input-row"><label class="input-label">里程 (km)</label><input type="number" v-model.number="mForm.odometer" class="input-field"></div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="input-row">
+                            <label class="input-label">類別</label>
+                            <select v-model="mForm.category" class="input-field appearance-none bg-transparent" style="direction: rtl;">
+                                <option value="定期保養">定期保養</option><option value="耗材更換">耗材更換</option><option value="故障維修">故障維修</option><option value="美容清潔">美容清潔</option><option value="改裝升級">改裝升級</option><option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="input-row"><label class="input-label">金額 ($)</label><input type="number" v-model.number="mForm.cost" class="input-field text-emerald-600 text-lg"></div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+                        <label class="input-label mb-2 w-full">項目內容</label>
+                        <input type="text" v-model="mForm.title" class="w-full bg-slate-50 h-10 rounded-lg px-3 mb-3 border border-slate-100 outline-none font-bold" placeholder="例如: 機油、濾心">
+                        <div class="flex flex-wrap gap-2">
+                            <button v-for="s in mSettings" :key="s.name" @click="appendMaintTitle(s.name)" class="text-xs border border-slate-200 bg-slate-50 px-3 py-1.5 rounded-lg text-slate-500 font-bold active:scale-95 transition">+ {{ s.name }}</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="input-row"><label class="input-label">店家</label><input type="text" v-model="mForm.shop" class="input-field" placeholder="選填"></div>
+                        <div class="input-row"><label class="input-label">備註</label><input type="text" v-model="mForm.note" class="input-field" placeholder="選填"></div>
+                    </div>
+                </div>
+
+                <div class="h-10"></div>
+            </div>
+
+            <div class="p-5 bg-white border-t border-slate-200 pb-safe-bottom shrink-0 flex gap-3">
+                <button v-if="isEditing" @click="askConfirm('delete')" class="flex-1 py-3.5 rounded-xl bg-red-50 text-red-600 font-bold border border-red-100 active:scale-[0.98] transition">刪除</button>
+                <button @click="saveDataAndClose" :disabled="saving" class="flex-[2] py-3.5 rounded-xl text-white font-bold shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-2" :class="modalType === 'fuel' ? 'bg-blue-600 shadow-blue-500/30' : 'bg-emerald-500 shadow-emerald-500/30'">
+                     <span v-if="saving"><i class="fa-solid fa-spinner fa-spin"></i> 處理中</span>
+                     <span v-else>儲存紀錄</span>
+                </button>
+            </div>
+        </div>
+    </transition>
+
+    <!-- Other Modals -->
+    <transition name="fade">
+        <div v-if="showSettingsModal" class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-5 backdrop-blur-sm">
+            <div class="bg-white rounded-3xl w-full max-w-sm max-h-[70vh] flex flex-col shadow-2xl">
+                <div class="p-4 border-b border-slate-100 font-bold text-center text-lg text-slate-700">保養週期設定</div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                     <div v-for="(s, index) in mSettings" :key="index" class="flex gap-2 items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <input type="text" v-model="s.name" class="flex-1 bg-transparent text-sm font-bold text-slate-700 border-none focus:ring-0" placeholder="項目">
+                        <div class="flex items-center gap-1 w-20 bg-white rounded-lg px-2 py-1 border border-slate-200">
+                            <input type="number" v-model.number="s.interval" class="w-full text-center text-sm border-none focus:ring-0 p-0">
+                        </div>
+                        <button @click="removeSetting(index)" class="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <button @click="addSetting" class="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-sm font-bold text-slate-400 hover:border-slate-300 hover:text-slate-500 transition">+ 新增項目</button>
+                </div>
+                 <div class="p-5 border-t border-slate-100 flex justify-between items-center bg-slate-50 rounded-b-3xl">
+                    <button @click="restoreDefaults" class="text-xs text-slate-400 underline hover:text-slate-600">重置預設</button>
+                    <div class="flex gap-3">
+                        <button @click="showSettingsModal=false" class="px-4 py-2 text-slate-500 font-bold hover:bg-slate-200 rounded-lg transition">取消</button>
+                        <button @click="saveSettings" class="px-6 py-2 bg-slate-800 text-white rounded-xl font-bold shadow-lg hover:bg-slate-700 transition">完成</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </transition>
+
+     <!-- Vehicle Modal -->
+    <div v-if="showVehicleModal" class="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-5 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
+            <h3 class="font-bold text-xl mb-6 text-center text-slate-800">
+                {{ modalMode === 'switch' ? '切換車輛' : (modalMode === 'add' ? '新增車輛' : '編輯名稱') }}
+            </h3>
+            
+            <div v-if="modalMode === 'switch'" class="space-y-3">
+                 <div v-for="v in vehicles" :key="v.id" @click="switchVehicle(v.id)" class="p-4 rounded-xl border transition cursor-pointer flex justify-between items-center group" :class="currentVehicleId === v.id ? 'border-blue-500 bg-blue-50' : 'border-slate-100 hover:border-blue-200'">
+                    <span class="font-bold" :class="currentVehicleId === v.id ? 'text-blue-700' : 'text-slate-600'">{{ v.name }}</span>
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center" :class="currentVehicleId === v.id ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-300'"><i class="fa-solid fa-check text-xs"></i></div>
+                </div>
+                <button @click="modalMode='add'" class="w-full py-3 mt-2 text-sm font-bold text-blue-600 border border-dashed border-blue-200 rounded-xl hover:bg-blue-50 transition">+ 新增車輛</button>
+                 <button @click="showVehicleModal=false" class="w-full py-3 mt-2 text-slate-400 text-sm font-bold">關閉</button>
+            </div>
+            
+            <div v-else>
+                 <input v-model="tempVehicleName" type="text" placeholder="輸入車輛名稱" class="app-input mb-6 text-center text-lg font-bold">
+                 <div class="flex gap-3">
+                    <button @click="showVehicleModal = false" class="flex-1 py-3 text-slate-500 font-bold bg-slate-100 rounded-xl">取消</button>
+                    <button @click="saveVehicle" class="flex-1 py-3 text-white font-bold bg-blue-600 rounded-xl shadow-lg shadow-blue-500/30">確定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirm Modal -->
+    <div v-if="showConfirmModal" class="fixed inset-0 z-[110] bg-black/60 flex items-center justify-center p-6 backdrop-blur-md">
+        <div class="bg-white rounded-3xl w-full max-w-xs p-6 text-center shadow-2xl transform transition-all scale-100">
+             <div class="w-14 h-14 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fa-solid fa-trash-can"></i></div>
+             <h3 class="font-bold text-lg text-slate-800 mb-2">{{ confirmConfig.title }}</h3>
+             <p class="text-sm text-slate-500 mb-6">{{ confirmConfig.message }}</p>
+             <div class="flex gap-3">
+                 <button @click="showConfirmModal = false" class="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold">取消</button>
+                 <button @click="executeConfirm" class="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold shadow-lg shadow-red-500/30">確定</button>
+             </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+
+    createApp({
+        setup() {
+            // Data State
+            const vehicles = ref([{ id: 1, name: '我的愛車' }]);
+            const currentVehicleId = ref(1);
+            const logs = ref([]);
+            const mLogs = ref([]);
+            const mSettings = ref([
+                { name: '機油', interval: 10000 }, { name: '變速箱油', interval: 60000 }, { name: '前輪', interval: 40000 },
+                { name: '後輪', interval: 40000 }, { name: '濾網', interval: 20000 }, { name: '皮帶', interval: 80000 }, { name: '電瓶', interval: 40000 }
+            ]);
+
+            // UI State
+            const currentTab = ref('fuel');
+            const isModalOpen = ref(false);
+            const modalType = ref('fuel'); 
+            const isEditing = ref(false);
+            const showVehicleModal = ref(false);
+            const showSettingsModal = ref(false);
+            const showConfirmModal = ref(false);
+            const modalMode = ref('switch'); 
+            const tempVehicleName = ref('');
+            const confirmConfig = ref({ title: '', message: '', action: null });
+            
+            // Toast
+            const showToast = ref(false);
+            const toastMessage = ref('');
+            const saving = ref(false);
+
+            // Forms
+            const today = new Date().toISOString().split('T')[0];
+            const form = ref({ id: null, date: today, odometer: null, unitPrice: null, totalCost: null, volume: null, fuelType: '95', locationName: '', isSkipped: false });
+            const mForm = ref({ id: null, date: today, odometer: null, category: '定期保養', cost: null, title: '', shop: '', note: '' });
+
+            let effChart = null, priceChart = null;
+
+            onMounted(() => {
+                try {
+                    const sv = localStorage.getItem('fuel_app_vehicles');
+                    const sl = localStorage.getItem('fuel_app_logs');
+                    const sm = localStorage.getItem('fuel_app_mlogs');
+                    const ss = localStorage.getItem('fuel_app_msettings');
+                    const sid = localStorage.getItem('fuel_app_current_id');
+                    
+                    if (sv) vehicles.value = JSON.parse(sv);
+                    if (sl) logs.value = JSON.parse(sl);
+                    if (sm) mLogs.value = JSON.parse(sm);
+                    if (ss) mSettings.value = JSON.parse(ss);
+                    if (sid) currentVehicleId.value = parseInt(sid);
+                } catch (e) {
+                    console.error("Data error", e);
+                    vehicles.value = [{ id: 1, name: '我的愛車' }];
+                    currentVehicleId.value = 1;
+                }
+                if (!vehicles.value || vehicles.value.length === 0) {
+                    vehicles.value = [{ id: 1, name: '我的愛車' }];
+                    currentVehicleId.value = 1;
+                }
+                
+                const tempForm = { fuelType: '95', unitPrice: null };
+                fetchOilPrice(tempForm, true);
+                form.value.unitPrice = tempForm.unitPrice;
+            });
+
+            watch([currentTab, logs, mLogs, currentVehicleId, mSettings], async () => {
+                if(currentTab.value === 'chart') { await nextTick(); renderCharts(); }
+                saveData();
+            }, { deep: true });
+
+            // Computed
+            const currentVehicle = computed(() => vehicles.value.find(v => v.id === currentVehicleId.value) || vehicles.value[0]);
+            const currentVehicleLogs = computed(() => logs.value.filter(l => l.vehicleId === currentVehicleId.value));
+            const currentVehicleMLogs = computed(() => mLogs.value.filter(l => l.vehicleId === currentVehicleId.value));
+            
+            const maxOdometer = computed(() => {
+                const fMax = currentVehicleLogs.value.reduce((m, l) => Math.max(m, l.odometer || 0), 0);
+                const mMax = currentVehicleMLogs.value.reduce((m, l) => Math.max(m, l.odometer || 0), 0);
+                return Math.max(fMax, mMax);
+            });
+
+            const sortedLogs = computed(() => {
+                const s = [...currentVehicleLogs.value].sort((a, b) => new Date(b.date) - new Date(a.date) || b.odometer - a.odometer);
+                return s.map((log, i) => {
+                    const prev = s[i+1];
+                    const trip = prev ? log.odometer - prev.odometer : 0;
+                    return { ...log, trip: trip > 0 ? trip : 0 };
+                });
+            });
+
+            const sortedMLogs = computed(() => [...currentVehicleMLogs.value].sort((a, b) => new Date(b.date) - new Date(a.date) || b.odometer - a.odometer));
+
+            const activeReminders = computed(() => {
+                if(!maxOdometer.value) return [];
+                return mSettings.value.map(s => {
+                    const rel = currentVehicleMLogs.value.filter(l => l.title && l.title.includes(s.name)).sort((a,b)=>b.odometer-a.odometer);
+                    const last = rel[0];
+                    if(!last) return null;
+                    const driven = maxOdometer.value - last.odometer;
+                    const rem = s.interval - driven;
+                    return { name: s.name, remaining: rem, percent: (driven/s.interval)*100, isDue: rem <= 1000 };
+                }).filter(Boolean).sort((a,b) => a.remaining - b.remaining);
+            });
+
+            const chartDataAvailable = computed(() => sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped).length >= 1);
+
+            // Toast Helper
+            const triggerToast = (msg) => {
+                toastMessage.value = msg;
+                showToast.value = true;
+                if (navigator.vibrate) navigator.vibrate(50);
+                setTimeout(() => showToast.value = false, 2000);
+            };
+
+            // Actions
+            const resetForms = () => {
+                const t = new Date().toISOString().split('T')[0];
+                const currentPrice = form.value.unitPrice;
+                form.value = { id: null, date: t, odometer: null, unitPrice: currentPrice, totalCost: null, volume: null, fuelType: '95', locationName: '', isSkipped: false };
+                mForm.value = { id: null, date: t, odometer: null, category: '定期保養', cost: null, title: '', shop: '', note: '' };
+            };
+
+            const openAddModal = () => {
+                // FORCE modal type based on tab, no complex logic
+                if (currentTab.value === 'fuel') modalType.value = 'fuel';
+                else if (currentTab.value === 'maint') modalType.value = 'maint';
+                else modalType.value = 'fuel'; // Default
+                
+                isEditing.value = false;
+                resetForms();
+                
+                // Auto fetch if price is missing
+                if(modalType.value === 'fuel' && !form.value.unitPrice) {
+                    fetchOilPrice(form.value, true);
+                }
+                
+                isModalOpen.value = true;
+            };
+
+            const openEditModal = (data, type) => {
+                modalType.value = type;
+                isEditing.value = true;
+                if(type === 'fuel') form.value = JSON.parse(JSON.stringify(data));
+                else mForm.value = JSON.parse(JSON.stringify(data));
+                isModalOpen.value = true;
+            };
+
+            const closeModal = () => { isModalOpen.value = false; };
+
+            const saveDataAndClose = () => {
+                saving.value = true;
+                setTimeout(() => { // Simulate tiny delay for UX
+                    try {
+                        if(modalType.value === 'fuel') {
+                            if(!form.value.date || !form.value.odometer || !form.value.totalCost) { saving.value = false; return alert('請填寫完整資料'); }
+                            if(isEditing.value) {
+                                const idx = logs.value.findIndex(l => l.id === form.value.id);
+                                if(idx !== -1) logs.value[idx] = { ...form.value };
+                            } else {
+                                logs.value.push({ ...form.value, id: Date.now(), vehicleId: currentVehicleId.value });
+                            }
+                        } else {
+                            if(!mForm.value.date || !mForm.value.odometer || !mForm.value.cost || !mForm.value.title) { saving.value = false; return alert('請填寫完整資料'); }
+                            if(isEditing.value) {
+                                const idx = mLogs.value.findIndex(l => l.id === mForm.value.id);
+                                if(idx !== -1) mLogs.value[idx] = { ...mForm.value };
+                            } else {
+                                mLogs.value.push({ ...mForm.value, id: Date.now(), vehicleId: currentVehicleId.value });
+                            }
+                        }
+                        saveData();
+                        closeModal();
+                        triggerToast(isEditing.value ? '修改成功！' : '新增成功！');
+                    } catch (e) {
+                        alert("儲存失敗: " + e.message);
+                    } finally {
+                        saving.value = false;
+                    }
+                }, 300);
+            };
+
+            const askConfirm = (action) => {
+                confirmAction.value = action === 'delete' 
+                    ? { title: '刪除確認', message: '刪除後無法復原，確定？', action: performDelete } 
+                    : { title: '確認', message: '確定執行？', action: null };
+                showConfirmModal.value = true;
+            };
+            
+            const executeConfirm = () => { if(confirmAction.value) confirmAction.value(); showConfirmModal.value = false; };
+            
+            const performDelete = () => {
+                if(modalType.value === 'fuel') logs.value = logs.value.filter(l => l.id !== form.value.id);
+                else mLogs.value = mLogs.value.filter(l => l.id !== mForm.value.id);
+                closeModal();
+                triggerToast('已刪除紀錄');
+            };
+
+            const setFuelType = (t) => { form.value.fuelType = t; fetchOilPrice(form.value, true); };
+            const appendMaintTitle = (t) => { mForm.value.title = mForm.value.title ? mForm.value.title + '、' + t : t; };
+            
+            const fetchOilPrice = (target, silent) => {
+                let bp = 31.0;
+                switch(target.fuelType) { case '92': bp=29.5; break; case '95': bp=31.0; break; case '98': bp=33.0; break; case '柴油': bp=27.5; break; }
+                const mp = (bp + (Math.random()*0.4)-0.2).toFixed(1);
+                target.unitPrice = mp;
+                if(!silent) alert(`今日油價: ${mp}`);
+                recalc(target, 'price');
+            };
+
+            const recalc = (t, type) => {
+                const p = parseFloat(t.unitPrice), c = parseFloat(t.totalCost), v = parseFloat(t.volume);
+                if(type === 'price' && c && p) t.volume = (c/p).toFixed(2);
+                else if(type === 'cost' && p) t.volume = (c/p).toFixed(2);
+                else if(type === 'volume' && p && v) t.totalCost = Math.round(v*p);
+            };
+
+            const openVehicleModal = (mode) => { 
+                modalMode.value = mode; 
+                tempVehicleName.value = mode==='edit' ? currentVehicle.value.name : ''; 
+                showVehicleModal.value = true; 
+            };
+            const switchVehicle = (id) => { currentVehicleId.value = id; showVehicleModal.value = false; };
+            const saveVehicle = () => {
+                if(!tempVehicleName.value) return;
+                if(modalMode.value === 'add') { 
+                    const id = Date.now(); 
+                    vehicles.value.push({id, name: tempVehicleName.value}); 
+                    currentVehicleId.value = id; 
+                } else { 
+                    const v = vehicles.value.find(v=>v.id===currentVehicleId.value); 
+                    if(v) v.name = tempVehicleName.value; 
+                }
+                showVehicleModal.value = false;
+                triggerToast('車輛已更新');
+            };
+
+            const addSetting = () => mSettings.value.push({ name: '', interval: 10000 });
+            const removeSetting = (i) => mSettings.value.splice(i, 1);
+            const saveSettings = () => { showSettingsModal.value = false; triggerToast('設定已儲存'); };
+            const restoreDefaults = () => { if(confirm('恢復預設？')) mSettings.value = [ { name: '機油', interval: 10000 }, { name: '變速箱油', interval: 60000 }, { name: '前輪', interval: 40000 }, { name: '後輪', interval: 40000 }, { name: '濾網', interval: 20000 }, { name: '皮帶', interval: 80000 }, { name: '電瓶', interval: 40000 } ]; };
+
+            const calculateAverageConsumption = () => {
+                const v = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
+                if(!v.length) return "--";
+                const d = v.reduce((s,l)=>s+l.trip,0), vol = v.reduce((s,l)=>s+parseFloat(l.volume),0);
+                return vol ? (d/vol).toFixed(2) : "--";
+            };
+            const calculateTotalFuelCost = () => currentVehicleLogs.value.reduce((s,l)=>s+parseFloat(l.totalCost||0),0).toLocaleString();
+            const calculateTotalMaintCost = () => currentVehicleMLogs.value.reduce((s,l)=>s+parseFloat(l.cost||0),0).toLocaleString();
+            const calculateCostPerKm = () => {
+                if(!maxOdometer.value) return "--";
+                const dist = maxOdometer.value - (sortedLogs.value[sortedLogs.value.length-1]?.odometer || 0); 
+                if(dist <= 0) return "--"; 
+                const cost = parseInt(calculateTotalFuelCost().replace(/,/g,'')) + parseInt(calculateTotalMaintCost().replace(/,/g,''));
+                return (cost/dist).toFixed(2);
+            };
+
+            const saveData = () => {
+                localStorage.setItem('fuel_app_vehicles', JSON.stringify(vehicles.value));
+                localStorage.setItem('fuel_app_logs', JSON.stringify(logs.value));
+                localStorage.setItem('fuel_app_mlogs', JSON.stringify(mLogs.value));
+                localStorage.setItem('fuel_app_msettings', JSON.stringify(mSettings.value));
+                localStorage.setItem('fuel_app_current_id', currentVehicleId.value);
+            };
+
+            const renderCharts = () => {
+                if(!chartDataAvailable.value) return;
+                const v = sortedLogs.value.filter(l=>l.trip>0 && !l.isSkipped).reverse();
+                const labels = v.map(l=>l.date.substring(5));
+                const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: '#f1f5f9' }, beginAtZero: false } }, elements: { line: { tension: 0.3 }, point: { radius: 3 } } };
+                if(effChart) effChart.destroy();
+                effChart = new Chart(document.getElementById('efficiencyChart'), { type: 'line', data: { labels, datasets: [{ label: 'km/L', data: v.map(l=>(l.trip/l.volume).toFixed(2)), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 2, fill: true }] }, options: commonOptions });
+                if(priceChart) priceChart.destroy();
+                priceChart = new Chart(document.getElementById('priceChart'), { type: 'line', data: { labels, datasets: [{ label: '$/L', data: v.map(l=>l.unitPrice), borderColor: '#f97316', borderWidth: 2, borderDash: [5,5], fill: false }] }, options: commonOptions });
+            };
+
+            const exportData = () => {
+                const blob = new Blob([JSON.stringify({ vehicles: vehicles.value, logs: logs.value, mLogs: mLogs.value, mSettings: mSettings.value, currentVehicleId: currentVehicleId.value })], { type: "application/json" });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `car_backup_${new Date().toISOString().split('T')[0]}.json`; a.click();
+            };
+            const importData = (e) => {
+                const r = new FileReader();
+                r.onload = (ev) => {
+                    if(confirm('警告：匯入將覆蓋現有資料。確定繼續？')) {
+                        try {
+                            const d = JSON.parse(ev.target.result);
+                            vehicles.value = d.vehicles; logs.value = d.logs; mLogs.value = d.mLogs; mSettings.value = d.mSettings; currentVehicleId.value = d.currentVehicleId;
+                            saveData(); location.reload();
+                        } catch(e) { alert('檔案格式錯誤'); }
+                    }
+                };
+                if(e.target.files[0]) r.readAsText(e.target.files[0]);
+            };
+            
+            // UI Helpers
+            const getCategoryBg = (c) => ({ '定期保養': 'bg-emerald-100 text-emerald-600', '耗材更換': 'bg-blue-100 text-blue-600', '故障維修': 'bg-red-100 text-red-600', '美容清潔': 'bg-purple-100 text-purple-600' }[c] || 'bg-slate-100 text-slate-500');
+            const getCategoryIcon = (c) => ({ '定期保養': 'fa-solid fa-oil-can', '耗材更換': 'fa-solid fa-rotate', '故障維修': 'fa-solid fa-screwdriver-wrench', '美容清潔': 'fa-solid fa-sparkles' }[c] || 'fa-solid fa-clipboard');
+
+            return {
+                vehicles, currentVehicleId, currentVehicle, logs, mLogs, currentTab, maxOdometer, sortedLogs, sortedMLogs, currentVehicleLogs, currentVehicleMLogs,
+                form, mForm, mSettings, activeReminders, isModalOpen, modalType, isEditing, showVehicleModal, showSettingsModal, showConfirmModal, modalMode, tempVehicleName,
+                chartDataAvailable, showToast, toastMessage, saving,
+                openAddModal, openEditModal, closeModal, saveDataAndClose, askConfirm, executeConfirm,
+                fetchOilPrice, setFuelType, recalc, appendMaintTitle, openVehicleModal, switchVehicle, saveVehicle,
+                addSetting, removeSetting, saveSettings, restoreDefaults,
+                calculateAverageConsumption, calculateTotalFuelCost, calculateTotalMaintCost, calculateCostPerKm,
+                exportData, importData, confirmConfig, getCategoryBg, getCategoryIcon
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
