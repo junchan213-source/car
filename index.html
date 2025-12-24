@@ -42,9 +42,9 @@
         .toast-enter-from, .toast-leave-to { opacity: 0; transform: translate(-50%, -20px); }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 select-none h-screen overflow-hidden flex flex-col">
+<body class="bg-slate-50 text-slate-800 select-none overflow-hidden fixed inset-0">
 
-<div id="app" class="h-full flex flex-col w-full max-w-xl mx-auto relative bg-slate-100">
+<div id="app" class="flex flex-col w-full max-w-xl mx-auto relative bg-slate-100 h-full">
     
     <!-- TOAST -->
     <transition name="toast">
@@ -171,8 +171,8 @@
         </div>
     </main>
 
-    <!-- FAB (Fixed Z-Index 999) - MOVED UP TO BOTTOM-48 -->
-    <button v-if="currentTab !== 'chart' && !isModalOpen" @click="openAddModal" class="absolute bottom-48 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center text-2xl z-[999] active:scale-90 transition duration-200">
+    <!-- FAB (Fixed Z-Index 999) -->
+    <button v-if="currentTab !== 'chart' && !isModalOpen" @click="openAddModal" class="absolute bottom-40 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center text-2xl z-[999] active:scale-90 transition duration-200">
         <i class="fa-solid fa-plus"></i>
     </button>
 
@@ -522,13 +522,13 @@
             };
 
             const askConfirm = (action) => {
-                confirmAction.value = action === 'delete' 
+                confirmConfig.value = action === 'delete' 
                     ? { title: '刪除確認', message: '刪除後無法復原，確定？', action: performDelete } 
                     : { title: '確認', message: '確定執行？', action: null };
                 showConfirmModal.value = true;
             };
             
-            const executeConfirm = () => { if(confirmAction.value) confirmAction.value(); showConfirmModal.value = false; };
+            const executeConfirm = () => { if(confirmConfig.value.action) confirmConfig.value.action(); showConfirmModal.value = false; };
             
             const performDelete = () => {
                 if(modalType.value === 'fuel') logs.value = logs.value.filter(l => l.id !== form.value.id);
@@ -584,8 +584,7 @@
             const calculateAverageConsumption = () => {
                 const valid = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
                 if(!valid.length) return "--";
-                const d = valid.reduce((s,l)=>s+l.trip,0);
-                const vol = valid.reduce((s,l)=>s+parseFloat(l.volume),0);
+                const d = valid.reduce((s,l)=>s+l.trip,0), vol = valid.reduce((s,l)=>s+parseFloat(l.volume),0);
                 return vol ? (d/vol).toFixed(2) : "--";
             };
 
@@ -619,7 +618,7 @@
                 const totalValidFuelCost = validLogs.reduce((acc, log) => acc + parseFloat(log.totalCost || 0), 0);
                 
                 // Maint cost: simplistic approach, sum all maint cost
-                const totalMaint = currentVehicleMLogs.value.reduce((acc, log) => acc + parseFloat(log.cost || 0), 0);
+                const totalMaint = parseInt(calculateTotalMaintCost().replace(/,/g,''));
                 
                 if (totalValidDist <= 0) return "--";
                 
@@ -675,7 +674,7 @@
                 openAddModal, openEditModal, closeModal, saveDataAndClose, askConfirm, executeConfirm,
                 fetchOilPrice, setFuelType, recalc, appendMaintTitle, openVehicleModal, switchVehicle, saveVehicle,
                 addSetting, removeSetting, saveSettings, restoreDefaults,
-                calculateAverageConsumption, calculateTotalFuelCost, calculateIntervalFuelCost, calculateTotalMaintCost, calculateCostPerKm,
+                calculateAverageConsumption, calculateTotalFuelCost, calculateTotalMaintCost, calculateCostPerKm,
                 exportData, importData, confirmConfig, getCategoryBg, getCategoryIcon
             };
         }
