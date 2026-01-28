@@ -348,8 +348,8 @@
             const logs = ref([]);
             const mLogs = ref([]);
             const mSettings = ref([
-                { name: '機油', interval: 10000 }, { name: '變速箱油', interval: 60000 }, { name: '前輪', interval: 40000 },
-                { name: '後輪', interval: 40000 }, { name: '濾網', interval: 20000 }, { name: '皮帶', interval: 80000 }, { name: '電瓶', interval: 40000 }
+                { name: '機油', interval: 1000 }, { name: '變速箱油', interval: 2000 }, { name: '前輪', interval: 12000 },
+                { name: '後輪', interval: 10000 }, { name: '濾網', interval: 10000 }, { name: '皮帶', interval: 20000 }, { name: '電瓶', interval: 40000 }
             ]);
 
             // UI State
@@ -579,7 +579,8 @@
             const addSetting = () => mSettings.value.push({ name: '', interval: 10000 });
             const removeSetting = (i) => mSettings.value.splice(i, 1);
             const saveSettings = () => { showSettingsModal.value = false; triggerToast('設定已儲存'); };
-            const restoreDefaults = () => { if(confirm('恢復預設？')) mSettings.value = [ { name: '機油', interval: 10000 }, { name: '變速箱油', interval: 60000 }, { name: '前輪', interval: 40000 }, { name: '後輪', interval: 40000 }, { name: '濾網', interval: 20000 }, { name: '皮帶', interval: 80000 }, { name: '電瓶', interval: 40000 } ]; };
+            const restoreDefaults = () => { if(confirm('恢復預設？')) mSettings.value = [ { name: '機油', interval: 1000 }, { name: '變速箱油', interval: 2000 }, { name: '前輪', interval: 12000 },
+                { name: '後輪', interval: 10000 }, { name: '濾網', interval: 10000 }, { name: '皮帶', interval: 20000 }, { name: '電瓶', interval: 40000 } ]; };
 
             const calculateAverageConsumption = () => {
                 const valid = sortedLogs.value.filter(l => l.trip > 0 && !l.isSkipped);
@@ -674,7 +675,7 @@
                 openAddModal, openEditModal, closeModal, saveDataAndClose, askConfirm, executeConfirm,
                 fetchOilPrice, setFuelType, recalc, appendMaintTitle, openVehicleModal, switchVehicle, saveVehicle,
                 addSetting, removeSetting, saveSettings, restoreDefaults,
-                calculateAverageConsumption, calculateTotalFuelCost, calculateTotalMaintCost, calculateCostPerKm,
+                calculateAverageConsumption, calculateTotalFuelCost, calculateIntervalFuelCost, calculateTotalMaintCost, calculateCostPerKm,
                 exportData, importData, confirmConfig, getCategoryBg, getCategoryIcon
             };
         }
